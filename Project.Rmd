@@ -11,18 +11,39 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Introduction  
 
-Sevens is a game played with six dice for a specified number of rounds. The player rolls six dice an must remove those pairs that total to seven. The player can then choose to keep the remaining dice, in which case the total of those dice is their score for the round. Or the player can roll up to two more times, removing pairs of dice that total to seven after every roll. All other players must roll their dice as many times as the first player or fewer. 
+Sevens is a game played with six dice for a specified number of rounds. The player rolls six dice and must remove the pairs that total to seven. The player can then choose to keep the remaining dice, in which case the total of those dice is their score for the round. Or the player can roll up to two more times, removing pairs of dice that total to seven after every roll. All other players must roll their dice as many times as the first player or fewer. 
 
-This simulation aims to explore different potential strategies when playing this game. For ease, we will use ten rounds with two players and the second player will randomly decide how many times to roll the dice on their turn. This way the strategy in question can be compared to having no strategy at all.  
+This simulation explores the distribution of a player's score according to some simple rules and to estimate the probability of winning a simplified game with a particular strategy. The following are (several) simplifying assumptions that are made for the purposes of this simulation: 
+
+- There is one round per game (i.e. there are no rounds, only games)  
+- The "opponent" will be assigned an arbitrary strategy  
+- There are two players: Strategy Player and Random Player
+- The strategy player always rolls first and random player does not consider the score of the strategy player  
+This simulation will answer these questions:  
+
+- What is the distribution of a players score when the player always rolls once? Twice? Three times?  
+- What is the probability of the strategy player winning against a player who always rolls once? Who always rolls the same number of times as the strategy player? Who always rolls a random number of times?
 
 
 ## Methods  
 
-The probability of winning a game of sevens with a particular strategy will be simulated many times to approximate the probability of winning with that strategy. 
+In order to simulate the distribution of score if a player always rolls once, the code must simulate a roll of 6 dice, remove the pairs that total to seven, and return the score. The distribution of score when rolling twice or three times is similar and simply requires that the number of dice left is preserved from the previous roll. The code then generates another roll of however many fice are left over. Simulating each of these 10,000 times gives a sampling distribution for each number of rolls.  
 
-The challenge of this game is that each time you roll, you risk losing points by rolling more sevens. But if your initial roll doesn't score a lot of points, the risk might be worth taking. Part of the strategy is to identify the situations when it is worth it to roll again.
+To estimate the probability of the strategy player winning, the decision rule must be incorporated. The strategy player will make the choice to roll again or keep their score based on the expected value of the dice they have left, which are indicated below:  
+
+$$\mathbb{E}[roll\ 6\ dice ] = 21$$ 
+$$\mathbb{E}[roll\ 4\ dice ] = 14$$ 
+$$\mathbb{E}[roll\ 2\ dice ] = 7$$ 
+
+For example, if two dice must be removed the player has four left. If the player's score is less than 14, the player will roll again hoping to get a better score. If the player's score is greater than or equal to 14, the player will keep their score for that round. This "strategy," will be tested against a player who always rolls just once, who always rolls the same number of times as the first player, and who randomly chooses how many times to roll (under the restriction tha it must be less than or equal to the number of times the first player rolled). 
+
+Separate code simulates scores for each of the three random strategies. In order to estimate the probability of winning with the expected value strategy against each random strategy, 10,000 turns are simulated for the strategy player and 10,000 for each random strategy. The proportion of times the strategy player wins against each random strategy is a simulated probability. 
+
 
 ## Results  
+
+
+
 
 ## Conclusions
 
@@ -45,18 +66,6 @@ exp_sum(2)
 exp_sum(4)
 exp_sum(6)
 
-#show the same thing with a simulation
-
-roll_sum <- function(x){
-  rolls <- sample(1:6, x, replace = TRUE)
-  return(sum(rolls))
-}
-
-two_rolls <- replicate(10000, roll_sum(2))
-mean(two_rolls)
-
-four_rolls <- replicate(10000, roll_sum(4))
-mean(four_rolls)
 
 #what's the distribution of score when you never roll again?
 
@@ -196,16 +205,11 @@ score_alwaysroll <- replicate(10000, sevens_alwaysroll())
 hist(score_alwaysroll)
 avg_alwaysroll <- mean(score_alwaysroll)
 var_alwaysroll <- var(score_alwaysroll)
+```
 
+# Expected value strategy 
 
-#try the expected value strategy
-#if on the first roll you get no sevens and your score is less than 21, roll again
-#if on the first roll you get one seven and your score is less than 14, roll again
-#if it is 14 or higher, do not roll again
-#if you roll again and get no sevens
-#the expected value of six rolling six dice is 21
-
-
+```{r}
 
 check_roll_one <- function(rolls){
 
@@ -335,7 +339,7 @@ check_roll_one(rolls)
 check_roll_two <- function(num_dice){
   
   rolls <- sample(1:6, num_dice, replace=TRUE)
- 
+ #cat("second roll is", rolls)
   onesix <- c(1,6)
   twofive <- c(2,5)
   threefour <- c(3,4)
@@ -433,6 +437,7 @@ if (dice_left == 4 & curr_score >= 14){
     rolls_allowed <- 2
   }
   
+  
   ret_list <- list(rolls, dice_left, try_again, round_score, rolls_allowed)
   return(ret_list)
   
@@ -442,7 +447,7 @@ check_roll_three <- function(num_dice){
   
   rolls <- sample(1:6, num_dice, replace = TRUE)
   rolls_allowed <- 3
- 
+  #cat("third roll is", rolls)
 onesix <- c(1,6)
   twofive <- c(2,5)
   threefour <- c(3,4)
@@ -523,7 +528,7 @@ onesix <- c(1,6)
   curr_score <- sum(rolls)
   round_score <- curr_score
 
-  
+   
   ret_list <- list(rolls, curr_score, rolls_allowed)
   return(ret_list)
   
@@ -536,41 +541,351 @@ onesix <- c(1,6)
 exp_value <- function(){
   
 dice <- sample(1:6, 6, replace=T)
-print(dice)
+#print(dice)
 
 first_roll <- check_roll_one(dice)
 names(first_roll) <- c("roll", "dice_left","try_again", "score", "rolls_allowed")
 
 #if you decide to roll a second time
 if(first_roll$try_again == TRUE){
-  print("rolling again")
+  #print("rolling again")
   second_roll <- check_roll_two(first_roll$dice_left)
   names(second_roll) <- c("roll", "dice_left","try_again", "score", "rolls_allowed")
   
   #if you decide to roll a third time
   if(second_roll$try_again == TRUE){
-    print("rolling thrice")
+   # print("rolling thrice")
     third_roll <- check_roll_three(second_roll$dice_left)
     names(third_roll) <- c("roll", "current_score", "rolls_allowed")
-    out <- list(third_roll$roll, third_roll$current_score, third_roll$rolls_allowed)
+    out <- c(third_roll$current_score, third_roll$rolls_allowed)
     return(out)
   }else{
-    print("rolled twice")
-    out <- list(second_roll$roll, second_roll$score, second_roll$rolls_allowed)
+    #print("rolled twice")
+    out <- c( second_roll$score, second_roll$rolls_allowed)
     return(out)
   }
   
 }else{
-  print("only one roll")
-  out <- list(first_roll$roll, first_roll$score, first_roll$rolls_allowed)
+  #print("only one roll")
+  out <- c(first_roll$score, first_roll$rolls_allowed)
   return(out)
 }
 
 }
 
+library(purrr)
 #need opponent rolls
-exp_value()
+out <- exp_value()
+
+sim <- replicate(1000, exp_value())
+newlist <- data.frame(t(sim))
+
+names(newlist) <- c("score","rolls_allowed")
+
+
+#second player rolls this many times
+
+opp_rollone <- function(rolls){
+  rolls <- sample(1:6, 6, replace=TRUE)
+  onesix <- c(1,6)
+  twofive <- c(2,5)
+  threefour <- c(3,4)
+  
+  #check for dice that total to seven
+
+  ones <- sum(rolls == 1)
+  sixes <- sum(rolls == 6)
+
+  #if there's the same number of each, remove all of them
+  #only need to go through this if there is a one or a six
+  if(ones != 0 & sixes != 0){
+ if(ones %% sixes == 0){
+  rolls <- rolls[which(rolls != 6 & rolls != 1)]
+  }else{
+
+  diff <- abs(ones-sixes)
+  #number of pairs to remove
+  num_pairs <- max(ones, sixes) - diff
+  #go through this as many times as there are pairs to remove
+    for(i in 1:num_pairs){
+    if(all(onesix %in% rolls)){
+    rolls <- rolls[-match(onesix, rolls)]
+    }
+  }
+  }
+  }
+
+
+  twos <- sum(rolls == 2)
+  fives <- sum(rolls == 5)
+  
+  #only need to go through this if there is a two or a five
+  if(twos != 0 & fives != 0){
+    
+   if(twos %% fives == 0){
+  rolls <- rolls[which(rolls != 2 & rolls != 5)]
+  }else{
+
+  diff <- abs(twos-fives)
+  #number of pairs to remove
+  num_pairs <- max(twos, fives) - diff
+  
+  #go through this as many times as there are pairs to remove
+    for(i in 1:num_pairs){
+    if(all(twofive %in% rolls)){
+    rolls <- rolls[-match(twofive, rolls)]
+      }
+    }
+  }
+  }
+
+
+  threes <- sum(rolls == 3)
+  fours <- sum(rolls == 4)
+  #only need to go through this if there is a 3 or a 4
+  if(threes != 0 & fours != 0){
+  if(threes %% fours == 0){
+  rolls <- rolls[which(rolls != 3 & rolls != 4)]
+  
+  }else{
+    diff <- abs(threes-fours)
+    num_pairs <- max(threes, fours) - diff
+        for(i in 1:num_pairs){
+            
+            if(all(threefour %in% rolls)){
+            rolls <- rolls[-match(threefour, rolls)]
+           }
+        }
+   }
+}
   
   
+  dice_left <- length(rolls)
+  curr_score <- sum(rolls)
+  round_score <- curr_score
+  
+  
+  
+  ret_list <- c(dice_left, round_score)
+  return(ret_list)
+  
+  
+}
+
+opp_rolltwo <- function(dice_left){
+  rolls <- sample(1:6, dice_left, replace=TRUE)
+  onesix <- c(1,6)
+  twofive <- c(2,5)
+  threefour <- c(3,4)
+  
+  #check for dice that total to seven
+
+  ones <- sum(rolls == 1)
+  sixes <- sum(rolls == 6)
+
+  #if there's the same number of each, remove all of them
+  #only need to go through this if there is a one or a six
+  if(ones != 0 & sixes != 0){
+ if(ones %% sixes == 0){
+  rolls <- rolls[which(rolls != 6 & rolls != 1)]
+  }else{
+
+  diff <- abs(ones-sixes)
+  #number of pairs to remove
+  num_pairs <- max(ones, sixes) - diff
+  #go through this as many times as there are pairs to remove
+    for(i in 1:num_pairs){
+    if(all(onesix %in% rolls)){
+    rolls <- rolls[-match(onesix, rolls)]
+    }
+  }
+  }
+  }
+
+
+  twos <- sum(rolls == 2)
+  fives <- sum(rolls == 5)
+  
+  #only need to go through this if there is a two or a five
+  if(twos != 0 & fives != 0){
+    
+   if(twos %% fives == 0){
+  rolls <- rolls[which(rolls != 2 & rolls != 5)]
+  }else{
+
+  diff <- abs(twos-fives)
+  #number of pairs to remove
+  num_pairs <- max(twos, fives) - diff
+  
+  #go through this as many times as there are pairs to remove
+    for(i in 1:num_pairs){
+    if(all(twofive %in% rolls)){
+    rolls <- rolls[-match(twofive, rolls)]
+      }
+    }
+  }
+  }
+
+
+  threes <- sum(rolls == 3)
+  fours <- sum(rolls == 4)
+  #only need to go through this if there is a 3 or a 4
+  if(threes != 0 & fours != 0){
+  if(threes %% fours == 0){
+  rolls <- rolls[which(rolls != 3 & rolls != 4)]
+  
+  }else{
+    diff <- abs(threes-fours)
+    num_pairs <- max(threes, fours) - diff
+        for(i in 1:num_pairs){
+            
+            if(all(threefour %in% rolls)){
+            rolls <- rolls[-match(threefour, rolls)]
+           }
+        }
+   }
+}
+  
+  
+  dice_left <- length(rolls)
+  curr_score <- sum(rolls)
+  round_score <- curr_score
+  
+  
+  
+  ret_list <- c(dice_left, round_score)
+  return(ret_list)
+  
+  
+}
+
+opp_rollthree <- function(dice_left){
+  rolls <- sample(1:6, dice_left, replace=TRUE)
+  onesix <- c(1,6)
+  twofive <- c(2,5)
+  threefour <- c(3,4)
+  
+  #check for dice that total to seven
+
+  ones <- sum(rolls == 1)
+  sixes <- sum(rolls == 6)
+
+  #if there's the same number of each, remove all of them
+  #only need to go through this if there is a one or a six
+  if(ones != 0 & sixes != 0){
+ if(ones %% sixes == 0){
+  rolls <- rolls[which(rolls != 6 & rolls != 1)]
+  }else{
+
+  diff <- abs(ones-sixes)
+  #number of pairs to remove
+  num_pairs <- max(ones, sixes) - diff
+  #go through this as many times as there are pairs to remove
+    for(i in 1:num_pairs){
+    if(all(onesix %in% rolls)){
+    rolls <- rolls[-match(onesix, rolls)]
+    }
+  }
+  }
+  }
+
+
+  twos <- sum(rolls == 2)
+  fives <- sum(rolls == 5)
+  
+  #only need to go through this if there is a two or a five
+  if(twos != 0 & fives != 0){
+    
+   if(twos %% fives == 0){
+  rolls <- rolls[which(rolls != 2 & rolls != 5)]
+  }else{
+
+  diff <- abs(twos-fives)
+  #number of pairs to remove
+  num_pairs <- max(twos, fives) - diff
+  
+  #go through this as many times as there are pairs to remove
+    for(i in 1:num_pairs){
+    if(all(twofive %in% rolls)){
+    rolls <- rolls[-match(twofive, rolls)]
+      }
+    }
+  }
+  }
+
+
+  threes <- sum(rolls == 3)
+  fours <- sum(rolls == 4)
+  #only need to go through this if there is a 3 or a 4
+  if(threes != 0 & fours != 0){
+  if(threes %% fours == 0){
+  rolls <- rolls[which(rolls != 3 & rolls != 4)]
+  
+  }else{
+    diff <- abs(threes-fours)
+    num_pairs <- max(threes, fours) - diff
+        for(i in 1:num_pairs){
+            
+            if(all(threefour %in% rolls)){
+            rolls <- rolls[-match(threefour, rolls)]
+           }
+        }
+   }
+}
+  
+  
+  dice_left <- length(rolls)
+  curr_score <- sum(rolls)
+  round_score <- curr_score
+  
+  
+  
+  ret_list <- c(dice_left, round_score)
+  return(ret_list)
+  
+  
+}
+
+
+opponent_roll <- function(rolls_allowed){
+  if(rolls_allowed == 1){
+    opp_first <- opp_rollone()
+    return(opp_first[2])
+  } else if (rolls_allowed == 2){
+    opp_first <- opp_rollone()
+    opp_second <- opp_rolltwo(opp_first[1])
+    return(opp_second[2])
+  }else if (rolls_allowed == 3){
+    opp_first <- opp_rollone()
+    opp_second <- opp_rolltwo(opp_first[1])
+    opp_third <- opp_rollthree(opp_second[1])
+    return(opp_third[2])
+  }
+  
+}
+
+#opponent rolls as many times as you do
+out_you <- rep(NA, nrow(newlist))
+for(i in 1:nrow(newlist)){
+  out_you[i] <- opponent_roll(newlist[i,2])
+}
+
+scores_you <- data.frame(cbind(newlist[,1], out_you))
+scores_you <- scores_you %>% mutate(winner = ifelse(V1 > out_you, 1, 0))
+win_prob_you <- sum(scores_you$winner==1)/nrow(scores_you)
+
+#opponent rolls a random number of times
+
+rand_times <- sample(1:3, nrow(newlist), replace = TRUE)
+out_rand <- rep(NA, nrow(newlist))
+for(i in 1:nrow(newlist)){
+  out_rand[i] <- opponent_roll(rand_times[i])
+}
+
+scores_rand <- data.frame(cbind(newlist[,1], out_rand))
+scores_rand <- scores_rand %>% mutate(winner = ifelse(V1 > out_rand, 1, 0))
+win_prob_rand <- sum(scores_rand$winner==1)/nrow(scores_rand)
+
+
 ```
 
